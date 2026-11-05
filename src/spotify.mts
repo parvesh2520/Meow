@@ -1,8 +1,8 @@
 // Connects a listener's Spotify account (Authorization Code + PKCE, so no client secret) and plays
 // through the Spotify Web Playback SDK, which turns this tab into a Spotify Connect device.
-// Setup: create an app at developer.spotify.com, paste its Client ID below, and add
+// Setup: create an app at developer.spotify.com, set its Client ID as SPOTIFY_CLIENT_ID (Vercel env var or .env.local), and add
 // https://studywithcat.online/ (plus http://127.0.0.1:<port>/ for local testing) as redirect URIs.
-export const SPOTIFY_CLIENT_ID = '';
+import {SPOTIFY_CLIENT_ID} from './config.mjs';
 const SCOPES = 'streaming user-read-email user-read-private user-modify-playback-state playlist-read-private playlist-read-collaborative user-library-read';
 const TOKEN_KEY = 'swc-spotify-v1', SIGN_IN_KEY = 'swc-spotify-sign-in';
 const redirectUri = () => `${location.origin}/`;
