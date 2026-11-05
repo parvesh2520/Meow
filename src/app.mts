@@ -181,6 +181,7 @@ document.addEventListener('keydown', event => {
   if (event.key.toLowerCase() === 'f') setFocusMode(!document.body.classList.contains('quiet'));
 });
 let audioContext: AudioContext | undefined, gain: GainNode | undefined, soundNodes: AudioScheduledSourceNode[] = [], melodyTimer: ReturnType<typeof setInterval> | undefined, songUrl: string | null = null, soundSwitching = false;
+let songName = '';
 const song = $<HTMLAudioElement>('#own-song');
 const spotify = new SpotifyConnection(() => { if (sound === 'spotify' && !spotify.playing) sound = null; renderSound(); });
 function context(): AudioContext { if (!audioContext) { audioContext = new AudioContext(); gain = audioContext.createGain(); gain.gain.value = Number($<HTMLInputElement>('#volume').value) / 100; gain.connect(audioContext.destination); } return audioContext; }
@@ -203,7 +204,7 @@ function renderSound() {
   $('#dock-toggle').setAttribute('aria-label', sound ? 'Pause background sound' : 'Play background sound');
   $('#upload-song').textContent = sound === 'own' ? 'Ⅱ Pause your music' : songUrl ? '▶ Your music' : '＋ Your own music';
   $('#dock-spotify').classList.toggle('selected', sound === 'spotify'); $('#dock-spotify').setAttribute('aria-pressed', String(sound === 'spotify'));
-  renderSpotify(); renderCat();
+  renderPlayer(); renderSpotify(); renderCat();
 }
 async function selectSound(kind: SoundKind) {
   if (soundSwitching) return;
@@ -225,7 +226,21 @@ async function selectSound(kind: SoundKind) {
 }
 all<HTMLButtonElement>('[data-sound]').forEach(button => button.addEventListener('click', async () => { all<HTMLButtonElement>('[data-sound]').forEach(b => b.disabled = true); await selectSound(button.dataset.sound as SoundKind); all<HTMLButtonElement>('[data-sound]').forEach(b => b.disabled = false); }));
 for (const control of [$<HTMLInputElement>('#volume'), $<HTMLInputElement>('#dock-volume')]) control.addEventListener('input', () => { const value = Number(control.value) / 100; $<HTMLInputElement>('#volume').value = control.value; $<HTMLInputElement>('#dock-volume').value = control.value; if (gain && audioContext) gain.gain.setTargetAtTime(value, audioContext.currentTime, .03); song.volume = value; spotify.setVolume(value); $('#volume-label').textContent = `${Math.round(value * 100)}%`; });
-$('#dock-toggle').addEventListener('click', () => { const kind = sound || lastSound; if (kind === 'spotify' && !spotify.canResume) openSpotify(); else selectSound(kind); });
+const SOUND_LABELS: Record<SoundKind, [symbol: string, name: string]> = {lofi: ['♫', 'Soft piano'], rain: ['☂', 'Rainfall'], brown: ['≋', 'Brown noise'], own: ['♪', 'Your own music'], spotify: ['♫', 'Spotify']};
+// The mood-card player shows the current sound, or the last one so play can resume it.
+function renderPlayer() {
+  const kind = sound || lastSound, track = kind === 'spotify' ? spotify.track : null, [symbol, name] = SOUND_LABELS[kind];
+  $('#player-symbol').textContent = symbol;
+  const cover = $<HTMLImageElement>('#player-cover'); cover.hidden = !track?.image; if (track?.image && cover.src !== track.image) cover.src = track.image;
+  $('#player-title').textContent = track ? track.name : kind === 'own' && songName ? songName : name;
+  $('#player-detail').textContent = track ? track.artists : sound ? 'Playing now' : 'Paused · press play';
+  $('#player-toggle').textContent = sound ? 'Ⅱ' : '▶'; $('#player-toggle').setAttribute('aria-label', sound ? 'Pause music' : 'Play music');
+  for (const id of ['#player-prev', '#player-next']) $<HTMLButtonElement>(id).disabled = kind !== 'spotify' || !spotify.canResume;
+}
+function toggleSound() { const kind = sound || lastSound; if (kind === 'spotify' && !spotify.canResume) openSpotify(); else selectSound(kind); }
+for (const id of ['#dock-toggle', '#player-toggle']) $(id).addEventListener('click', toggleSound);
+$('#player-prev').addEventListener('click', () => spotify.previous().catch(error => toast(error.message)));
+$('#player-next').addEventListener('click', () => spotify.next().catch(error => toast(error.message)));
 function renderSpotify() {
   const connected = spotify.connected;
   $('#spotify-status').textContent = spotify.status || (!spotify.configured ? 'Spotify isn’t set up on this site yet.' : !connected ? 'Connect your Spotify account to play your own playlists here. Spotify Premium is needed for playback.' : spotify.track ? 'Your cat is listening along.' : 'Pick a playlist. Your cat will listen along.');
@@ -276,7 +291,7 @@ $('#upload-song').addEventListener('click', () => { if (songUrl) selectSound('ow
 $('#song-file').addEventListener('change', async () => {
   const file = $<HTMLInputElement>('#song-file').files?.[0]; if (!file) return;
   if (!file.type.startsWith('audio/')) { $<HTMLInputElement>('#song-file').value = ''; return toast('Please choose an audio file.'); }
-  stopSound(); if (songUrl) URL.revokeObjectURL(songUrl); songUrl = URL.createObjectURL(file); song.src = songUrl;
+  stopSound(); if (songUrl) URL.revokeObjectURL(songUrl); songUrl = URL.createObjectURL(file); songName = file.name; song.src = songUrl;
   await selectSound('own'); if (sound === 'own') toast(`Playing ${file.name}. Your file stays on this device.`);
 });
 song.addEventListener('error', () => { if (sound === 'own') { stopSound(); renderSound(); toast('Your browser cannot play this file. Try MP3 or WAV.'); } if (songUrl) { URL.revokeObjectURL(songUrl); songUrl = null; $<HTMLInputElement>('#song-file').value = ''; } });
@@ -304,4 +319,4 @@ window.addEventListener('study-shared-mode', event => {const wasGuest=sharedGues
 window.addEventListener('study-shared-active',event=>{if(sharedRoom&&!event.detail){account(Date.now());deadline=null;}sharedRoom=!!event.detail;sharedReady=true;save();});
 window.addEventListener('study-snapshot-request', () => window.dispatchEvent(new CustomEvent('study-snapshot', {detail:{room,durations:{...durations},kittenName,phase,seconds,deadline}})));
 // shortcut: tasks and preferences are saved on this browser only; add accounts when cross-device sync is required.
-setRoom(room, false); renderTasks(); renderTimer(); tick(); installStudyFlow(room); setInterval(tick, 1000);
+renderPlayer(); setRoom(room, false); renderTasks(); renderTimer(); tick(); installStudyFlow(room); setInterval(tick, 1000);

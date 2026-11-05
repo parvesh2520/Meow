@@ -9,7 +9,7 @@ const redirectUri = () => `${location.origin}/`;
 
 interface Tokens {accessToken: string; refreshToken: string; expiresAt: number}
 export interface SpotifyCollection {name: string; detail: string; image?: string; play: {context_uri: string} | {uris: string[]}}
-export interface SpotifyTrack {name: string; artists: string}
+export interface SpotifyTrack {name: string; artists: string; image?: string}
 
 function storedTokens(): Tokens | null {
   try {
@@ -101,7 +101,7 @@ export class SpotifyConnection {
         player.addListener('playback_error', () => { this.status = 'Spotify couldn’t play that. Try another playlist.'; this.onChange(); });
         player.addListener('player_state_changed', state => {
           const current = state?.track_window.current_track;
-          this.track = current ? {name: current.name, artists: current.artists.map(artist => artist.name).join(', ')} : null;
+          this.track = current ? {name: current.name, artists: current.artists.map(artist => artist.name).join(', '), image: imageUrl(current.album.images[0]?.url)} : null;
           this.playing = !!state && !state.paused;
           this.onChange();
         });
