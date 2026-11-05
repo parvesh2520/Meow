@@ -1,5 +1,5 @@
-import {OUTFITS} from './companions.mjs';
-const outfitOptions=Object.entries(OUTFITS).map(([id,outfit])=>`<button data-outfit-choice="${id}" aria-pressed="${id==='none'}"><span class="outfit-photo" data-outfit="${id}"></span><span>${outfit.name}</span><small class="wardrobe-tier">${id==='none'?'Free':'Paid'}</small></button>`).join('');
+import {OUTFITS,type OutfitId} from './companions.mjs';
+const outfitOptions=(Object.entries(OUTFITS) as [OutfitId, {name: string}][]).map(([id,outfit])=>`<button data-outfit-choice="${id}" aria-pressed="${id==='none'}"><span class="outfit-photo" data-outfit="${id}"></span><span>${outfit.name}</span><small class="wardrobe-tier">${id==='none'?'Free':'Paid'}</small></button>`).join('');
 export const clubTemplate = `
 
 <dialog id="club-workspace" class="club-workspace club-dialog desk-drawer" aria-labelledby="desk-title">

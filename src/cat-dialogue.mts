@@ -1,4 +1,4 @@
-export const dialogue = {
+export const dialogue: Record<string, string[]> = {
   study: [
     'Mom said no milk till homework is done.', 'I read this paragraph. The paragraph won.',
     'My homework is bigger than my paws.', 'I packed three pencils and absolutely no answers.',
@@ -36,10 +36,10 @@ export const dialogue = {
   treat: ['An imaginary snack for a very real effort.', 'Thank you. I brought enough imaginary biscuits for both of us.', 'Snack break. Then we try that question again.'],
   return: ['You’re back! I kept your seat warm.', 'There you are. Shall we try another page?', 'Welcome back, study buddy. Our books missed us.']
 };
-const previous = new Map();
-export function catLine(event, index) {
+const previous = new Map<string, number>();
+export function catLine(event: string, index?: number): string {
   const lines = dialogue[event] || dialogue.idle;
-  let pick = Number.isInteger(index) ? Math.abs(index) % lines.length : Math.floor(Math.random() * lines.length);
+  let pick = index !== undefined && Number.isInteger(index) ? Math.abs(index) % lines.length : Math.floor(Math.random() * lines.length);
   if (index === undefined && pick === previous.get(event)) pick = (pick + 1) % lines.length;
   previous.set(event, pick);
   return lines[pick];
